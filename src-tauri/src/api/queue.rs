@@ -9,7 +9,7 @@ const MAX_QUEUE_SIZE: usize = 100;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuedPunch {
     pub nfc_card_id: String,
-    pub terminal_secret: Option<String>,
+    pub api_key: Option<String>,
     pub scanned_at: DateTime<Utc>,
     pub retry_count: u32,
 }
@@ -33,14 +33,14 @@ pub fn save_queue(queue: &[QueuedPunch]) -> Result<(), String> {
     fs::write(path, json).map_err(|e| e.to_string())
 }
 
-pub fn enqueue(nfc_card_id: &str, terminal_secret: Option<&str>) {
+pub fn enqueue(nfc_card_id: &str, api_key: Option<&str>) {
     let mut queue = load_queue();
     if queue.len() >= MAX_QUEUE_SIZE {
         queue.remove(0); // Drop oldest
     }
     queue.push(QueuedPunch {
         nfc_card_id: nfc_card_id.to_string(),
-        terminal_secret: terminal_secret.map(|s| s.to_string()),
+        api_key: api_key.map(|s| s.to_string()),
         scanned_at: Utc::now(),
         retry_count: 0,
     });
@@ -64,7 +64,7 @@ pub async fn flush_queue(client: &reqwest::Client, api_url: &str) -> usize {
             client,
             api_url,
             &punch.nfc_card_id,
-            punch.terminal_secret.as_deref(),
+            punch.api_key.as_deref(),
         )
         .await
         {

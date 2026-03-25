@@ -25,7 +25,7 @@ Any USB NFC reader that supports PC/SC protocol with 13.56 MHz MIFARE Classic ca
 2. Install and launch
 3. Right-click the tray icon → Settings
 4. Enter your Clokr API URL (e.g., `https://clokr.yourcompany.de/api/v1`)
-5. Enter the Terminal Secret (same as `NFC_TERMINAL_SECRET` in your Clokr server `.env`)
+5. Enter the API Key (create one in Clokr Admin → System → NFC-Terminals)
 6. Scan an NFC card to test
 
 ## Development

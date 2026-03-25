@@ -67,14 +67,14 @@ fn main() {
                 let handle = handle_for_listener.clone();
 
                 tauri::async_runtime::spawn(async move {
-                    let (api_url, secret) = {
+                    let (api_url, api_key) = {
                         let state = handle.state::<AppState>();
                         let cfg = state.config.lock().unwrap();
-                        (cfg.api_url.clone(), cfg.terminal_secret.clone())
+                        (cfg.api_url.clone(), cfg.api_key.clone())
                     };
 
                     let client = reqwest::Client::new();
-                    match api::nfc_punch(&client, &api_url, &uid, secret.as_deref()).await {
+                    match api::nfc_punch(&client, &api_url, &uid, api_key.as_deref()).await {
                         Ok(resp) => {
                             let (title, body) = match resp.action.as_str() {
                                 "IN" => {
@@ -142,10 +142,10 @@ fn main() {
                 loop {
                     tokio::time::sleep(std::time::Duration::from_secs(30)).await;
 
-                    let (api_url, _) = {
+                    let api_url = {
                         let state = handle_for_queue.state::<AppState>();
                         let cfg = state.config.lock().unwrap();
-                        (cfg.api_url.clone(), cfg.terminal_secret.clone())
+                        cfg.api_url.clone()
                     };
 
                     let client = reqwest::Client::new();

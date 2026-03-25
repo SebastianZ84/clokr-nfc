@@ -4,7 +4,8 @@
   import { onMount } from "svelte";
 
   let apiUrl = $state("http://localhost:4000");
-  let terminalSecret = $state("");
+  let apiKey = $state("");
+  let httpsWarning = $derived(apiUrl && !apiUrl.startsWith("https://") && !apiUrl.includes("localhost") && !apiUrl.includes("127.0.0.1"));
   let autoStart = $state(false);
   let soundEnabled = $state(true);
   let readerConnected = $state(false);
@@ -16,7 +17,7 @@
     try {
       const config: any = await invoke("get_config");
       apiUrl = config.api_url ?? "http://localhost:4000";
-      terminalSecret = config.terminal_secret ?? "";
+      apiKey = config.api_key ?? "";
       autoStart = config.auto_start ?? false;
       soundEnabled = config.sound_enabled ?? true;
     } catch (e) {
@@ -46,7 +47,7 @@
       await invoke("save_config", {
         config: {
           api_url: apiUrl,
-          terminal_secret: terminalSecret || null,
+          api_key: apiKey || null,
           auto_start: autoStart,
           sound_enabled: soundEnabled,
         },
@@ -96,9 +97,16 @@
     </div>
 
     <div class="form-group">
-      <label for="secret">Terminal-Secret</label>
-      <input id="secret" type="password" bind:value={terminalSecret} placeholder="Optional" />
+      <label for="api-key">API-Schlüssel</label>
+      <input id="api-key" type="password" bind:value={apiKey} placeholder="clk_..." />
+      <span class="hint">Erstellen unter Admin → System → NFC-Terminals</span>
     </div>
+
+    {#if httpsWarning}
+      <div class="warning">
+        ⚠️ Unverschlüsselte Verbindung! HTTPS wird dringend empfohlen.
+      </div>
+    {/if}
 
     <div class="form-group toggle-group">
       <label for="auto-start">Automatisch starten</label>
@@ -298,6 +306,21 @@
   .saved-badge {
     font-size: 0.8125rem;
     color: #22c55e;
+    font-weight: 500;
+  }
+
+  .hint {
+    font-size: 0.75rem;
+    color: #666;
+  }
+
+  .warning {
+    padding: 0.625rem 0.875rem;
+    background: #f59e0b20;
+    border: 1px solid #f59e0b40;
+    border-radius: 6px;
+    color: #f59e0b;
+    font-size: 0.8125rem;
     font-weight: 500;
   }
 </style>

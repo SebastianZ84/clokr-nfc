@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub api_url: String,
-    pub terminal_secret: Option<String>,
+    pub api_key: Option<String>,
     pub auto_start: bool,
     pub sound_enabled: bool,
 }
@@ -14,7 +14,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             api_url: "http://localhost:4000".to_string(),
-            terminal_secret: None,
+            api_key: None,
             auto_start: false,
             sound_enabled: true,
         }

@@ -7,8 +7,6 @@ use serde::{Deserialize, Serialize};
 struct NfcPunchRequest {
     #[serde(rename = "nfcCardId")]
     nfc_card_id: String,
-    #[serde(rename = "terminalSecret", skip_serializing_if = "Option::is_none")]
-    terminal_secret: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -33,18 +31,24 @@ pub async fn nfc_punch(
     client: &reqwest::Client,
     api_url: &str,
     nfc_card_id: &str,
-    terminal_secret: Option<&str>,
+    api_key: Option<&str>,
 ) -> Result<NfcPunchResponse, PunchError> {
     let url = format!("{api_url}/api/v1/time-entries/nfc-punch");
     let body = NfcPunchRequest {
         nfc_card_id: nfc_card_id.to_string(),
-        terminal_secret: terminal_secret.map(|s| s.to_string()),
     };
 
-    let resp = client
+    let mut req = client
         .post(&url)
         .json(&body)
-        .timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(5));
+
+    // Add API key as Bearer token
+    if let Some(key) = api_key {
+        req = req.header("Authorization", format!("Bearer {key}"));
+    }
+
+    let resp = req
         .send()
         .await
         .map_err(|e| {
@@ -77,6 +81,12 @@ pub async fn nfc_punch(
             employee: None,
             time: None,
             error: Some("Unbekannte Karte".to_string()),
+        }),
+        401 => Ok(NfcPunchResponse {
+            action: "UNAUTHORIZED".to_string(),
+            employee: None,
+            time: None,
+            error: Some("Ungültiger API-Schlüssel".to_string()),
         }),
         403 => Ok(NfcPunchResponse {
             action: "FORBIDDEN".to_string(),
