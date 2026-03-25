@@ -116,7 +116,7 @@ fn main() {
                         }
                         Err(api::PunchError::Network(_)) => {
                             // Queue for retry
-                            queue::enqueue(&uid, secret.as_deref());
+                            queue::enqueue(&uid, api_key.as_deref());
                             let queue_size = queue::load_queue().len();
                             let _ = handle.emit("nfc:queue-size", queue_size);
                             send_notification(
