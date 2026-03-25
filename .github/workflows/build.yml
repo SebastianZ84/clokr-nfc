@@ -40,6 +40,14 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install pcsc-lite
 
+      - name: Set version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting version to $VERSION"
+          node -e "const f='src-tauri/tauri.conf.json';const c=JSON.parse(require('fs').readFileSync(f));c.version='$VERSION';require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          sed -i.bak "s/^version = .*/version = \"$VERSION\"/" src-tauri/Cargo.toml && rm -f src-tauri/Cargo.toml.bak
+        shell: bash
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
