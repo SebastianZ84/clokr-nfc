@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicepkg/tauri2-schema-gen/main/tauri.conf.json",
   "productName": "Clokr NFC Terminal",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.clokr.nfc-client",
   "build": {
     "frontendDist": "../dist",
