@@ -182,7 +182,7 @@ fn format_time(iso: &Option<String>) -> String {
         .and_then(|t| {
             chrono::DateTime::parse_from_rfc3339(t)
                 .ok()
-                .map(|dt| dt.format("%H:%M").to_string())
+                .map(|dt| dt.with_timezone(&chrono::Local).format("%H:%M").to_string())
         })
         .unwrap_or_else(|| "—".to_string())
 }
