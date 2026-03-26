@@ -102,7 +102,8 @@ fn main() {
                                         .map(|e| format!("{} {}", e.first_name, e.last_name))
                                         .unwrap_or_default();
                                     let time = format_time(&resp.time);
-                                    (name, format!("Eingestempelt {time}"))
+                                    let balance = format_balance(resp.balance_hours);
+                                    (name, format!("Eingestempelt {time}\nSaldo: {balance}"))
                                 }
                                 "OUT" => {
                                     let name = resp
@@ -111,7 +112,8 @@ fn main() {
                                         .map(|e| format!("{} {}", e.first_name, e.last_name))
                                         .unwrap_or_default();
                                     let time = format_time(&resp.time);
-                                    (name, format!("Ausgestempelt {time}"))
+                                    let balance = format_balance(resp.balance_hours);
+                                    (name, format!("Ausgestempelt {time}\nSaldo: {balance}"))
                                 }
                                 "BLOCKED" => {
                                     let name = resp
@@ -236,6 +238,19 @@ fn format_time(iso: &Option<String>) -> String {
                 .map(|dt| dt.with_timezone(&chrono::Local).format("%H:%M").to_string())
         })
         .unwrap_or_else(|| "—".to_string())
+}
+
+fn format_balance(hours: Option<f64>) -> String {
+    match hours {
+        Some(h) => {
+            let sign = if h >= 0.0 { "+" } else { "−" };
+            let abs = h.abs();
+            let hh = abs as u32;
+            let mm = ((abs - hh as f64) * 60.0).round() as u32;
+            format!("{sign}{hh}:{mm:02} h")
+        }
+        None => "—".to_string(),
+    }
 }
 
 fn send_notification(app: &tauri::AppHandle, title: &str, body: &str) {

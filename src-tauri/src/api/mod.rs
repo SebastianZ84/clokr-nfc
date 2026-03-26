@@ -15,6 +15,8 @@ pub struct NfcPunchResponse {
     pub employee: Option<EmployeeInfo>,
     pub time: Option<String>,
     pub error: Option<String>,
+    #[serde(rename = "balanceHours")]
+    pub balance_hours: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -81,18 +83,21 @@ pub async fn nfc_punch(
             employee: None,
             time: None,
             error: Some("Unbekannte Karte".to_string()),
+            balance_hours: None,
         }),
         401 => Ok(NfcPunchResponse {
             action: "UNAUTHORIZED".to_string(),
             employee: None,
             time: None,
             error: Some("Ungültiger API-Schlüssel".to_string()),
+            balance_hours: None,
         }),
         403 => Ok(NfcPunchResponse {
             action: "FORBIDDEN".to_string(),
             employee: None,
             time: None,
             error: Some("Zugriff verweigert".to_string()),
+            balance_hours: None,
         }),
         409 => {
             let data: NfcPunchResponse =
@@ -101,6 +106,7 @@ pub async fn nfc_punch(
                     employee: None,
                     time: None,
                     error: Some("Gesperrt".to_string()),
+                    balance_hours: None,
                 });
             Ok(data)
         }
