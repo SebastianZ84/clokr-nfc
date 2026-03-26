@@ -1,14 +1,1 @@
-{
-  "default": {
-    "identifier": "default",
-    "description": "Default capability for the NFC client",
-    "local": true,
-    "windows": ["settings"],
-    "permissions": [
-      "core:default",
-      "notification:default",
-      "autostart:default",
-      "core:event:default"
-    ]
-  }
-}
+{"default":{"identifier":"default","description":"Default capability for the NFC client","local":true,"windows":["settings"],"permissions":["core:default","notification:default","autostart:default","core:event:default"]}}

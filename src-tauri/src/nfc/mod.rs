@@ -104,7 +104,12 @@ fn poll_loop(
                                     .map(|b| format!("{b:02X}"))
                                     .collect();
 
-                                if debouncer.should_process(&uid) {
+                                // MIFARE Classic UID = 4 bytes (8 hex chars)
+                                // MIFARE Classic 7-byte UID = 14 hex chars
+                                if uid.len() < 8 {
+                                    warn!("Card UID too short ({} chars): {uid} — card removed too fast?", uid.len());
+                                    let _ = app.emit("nfc:card-error", "Karte zu schnell entfernt – bitte nochmal auflegen");
+                                } else if debouncer.should_process(&uid) {
                                     info!("Card scanned: {uid}");
                                     let _ = app.emit("nfc:card-scanned", uid.clone());
                                 }

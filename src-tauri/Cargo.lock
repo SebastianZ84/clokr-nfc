@@ -533,7 +533,7 @@ dependencies = [
 
 [[package]]
 name = "clokr-nfc-client"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "dirs 6.0.0",

@@ -44,6 +44,11 @@
       const now = new Date().toLocaleTimeString("de-DE");
       debugLog = [{ time: now, uid: event.payload, status: "scanned" }, ...debugLog.slice(0, 19)];
     });
+
+    listen<string>("nfc:card-error", (event) => {
+      const now = new Date().toLocaleTimeString("de-DE");
+      debugLog = [{ time: now, uid: event.payload, status: "error" }, ...debugLog.slice(0, 19)];
+    });
   });
 
   async function save() {
@@ -148,7 +153,7 @@
     {:else}
       <div class="debug-list">
         {#each debugLog as entry}
-          <div class="debug-entry">
+          <div class="debug-entry" class:error={entry.status === "error"}>
             <span class="debug-time">{entry.time}</span>
             <code class="debug-uid">{entry.uid}</code>
           </div>
@@ -378,6 +383,10 @@
     color: #888;
     font-size: 0.75rem;
     min-width: 60px;
+  }
+
+  .debug-entry.error .debug-uid {
+    color: #ef4444;
   }
 
   .debug-uid {

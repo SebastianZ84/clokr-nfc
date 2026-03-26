@@ -136,6 +136,13 @@ fn main() {
                 });
             });
 
+            // Listen for card read errors
+            let handle_for_errors = app_handle.clone();
+            app.listen("nfc:card-error", move |event: tauri::Event| {
+                let msg = event.payload().trim_matches('"').to_string();
+                send_notification(&handle_for_errors, "⚠️ Lesefehler", &msg);
+            });
+
             // Spawn queue retry task
             let handle_for_queue = app_handle.clone();
             tauri::async_runtime::spawn(async move {
