@@ -12,6 +12,7 @@
   let queueSize = $state(0);
   let saving = $state(false);
   let saved = $state(false);
+  let debugLog = $state<{ time: string; uid: string; status: string }[]>([]);
 
   onMount(async () => {
     try {
@@ -37,6 +38,11 @@
 
     listen<number>("nfc:queue-size", (event) => {
       queueSize = event.payload;
+    });
+
+    listen<string>("nfc:card-scanned", (event) => {
+      const now = new Date().toLocaleTimeString("de-DE");
+      debugLog = [{ time: now, uid: event.payload, status: "scanned" }, ...debugLog.slice(0, 19)];
     });
   });
 
@@ -133,6 +139,23 @@
       {/if}
     </div>
   </form>
+
+  <div class="debug-section">
+    <h3>Debug Log</h3>
+    <p class="hint">Zeigt gescannte Karten-UIDs in Echtzeit</p>
+    {#if debugLog.length === 0}
+      <p class="debug-empty">Noch keine Karte gescannt. Halte eine Karte an den Leser...</p>
+    {:else}
+      <div class="debug-list">
+        {#each debugLog as entry}
+          <div class="debug-entry">
+            <span class="debug-time">{entry.time}</span>
+            <code class="debug-uid">{entry.uid}</code>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -312,6 +335,56 @@
   .hint {
     font-size: 0.75rem;
     color: #666;
+  }
+
+  .debug-section {
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .debug-section h3 {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #ccc;
+  }
+
+  .debug-empty {
+    font-size: 0.8125rem;
+    color: #666;
+    font-style: italic;
+  }
+
+  .debug-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .debug-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.375rem 0.625rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 0.8125rem;
+  }
+
+  .debug-time {
+    color: #888;
+    font-size: 0.75rem;
+    min-width: 60px;
+  }
+
+  .debug-uid {
+    color: #22c55e;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
   }
 
   .warning {
