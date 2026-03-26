@@ -114,3 +114,45 @@ pub enum PunchError {
     Parse(String),
     Api(String),
 }
+
+#[derive(Debug, Deserialize)]
+struct AllowedCardsResponse {
+    cards: Vec<String>,
+}
+
+pub async fn fetch_allowed_cards(
+    client: &reqwest::Client,
+    api_url: &str,
+    api_key: Option<&str>,
+) -> Result<std::collections::HashSet<String>, PunchError> {
+    let url = format!("{api_url}/api/v1/terminals/allowed-cards");
+
+    let mut req = client
+        .get(&url)
+        .timeout(std::time::Duration::from_secs(10));
+
+    if let Some(key) = api_key {
+        req = req.header("Authorization", format!("Bearer {key}"));
+    }
+
+    let resp = req.send().await.map_err(|e| {
+        error!("Allowlist fetch network error: {e}");
+        PunchError::Network(e.to_string())
+    })?;
+
+    let status = resp.status().as_u16();
+    let text = resp.text().await.unwrap_or_default();
+
+    match status {
+        200 => {
+            let data: AllowedCardsResponse = serde_json::from_str(&text).map_err(|e| {
+                error!("Allowlist parse error: {e}");
+                PunchError::Parse(e.to_string())
+            })?;
+            info!("Fetched allowlist: {} cards", data.cards.len());
+            Ok(data.cards.into_iter().collect())
+        }
+        401 => Err(PunchError::Api("Unauthorized – invalid API key".to_string())),
+        _ => Err(PunchError::Api(format!("HTTP {status}: {text}"))),
+    }
+}

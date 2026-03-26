@@ -8,6 +8,7 @@ mod tray;
 
 use api::queue;
 use log::info;
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Listener, Manager};
@@ -16,6 +17,7 @@ use tauri_plugin_autostart::MacosLauncher;
 pub struct AppState {
     pub config: Mutex<config::AppConfig>,
     pub reader_connected: Arc<AtomicBool>,
+    pub allowed_cards: Arc<Mutex<HashSet<String>>>,
 }
 
 fn main() {
@@ -36,10 +38,13 @@ fn main() {
 
             let cfg = config::load_config();
             let reader_connected = Arc::new(AtomicBool::new(false));
+            let allowed_cards: Arc<Mutex<HashSet<String>>> =
+                Arc::new(Mutex::new(HashSet::new()));
 
             app.manage(AppState {
                 config: Mutex::new(cfg),
                 reader_connected: reader_connected.clone(),
+                allowed_cards: allowed_cards.clone(),
             });
 
             // Setup system tray
@@ -72,6 +77,19 @@ fn main() {
                         let cfg = state.config.lock().unwrap();
                         (cfg.api_url.clone(), cfg.api_key.clone())
                     };
+
+                    // Check allowlist (skip check if no API key configured)
+                    if api_key.is_some() {
+                        let allowed = {
+                            let state = handle.state::<AppState>();
+                            let cards = state.allowed_cards.lock().unwrap();
+                            cards.is_empty() || cards.contains(&uid)
+                        };
+                        if !allowed {
+                            send_notification(&handle, "Unbekannte Karte", &uid);
+                            return;
+                        }
+                    }
 
                     let client = reqwest::Client::new();
                     match api::nfc_punch(&client, &api_url, &uid, api_key.as_deref()).await {
@@ -162,6 +180,39 @@ fn main() {
                         let remaining = queue::load_queue().len();
                         let _ = handle_for_queue.emit("nfc:queue-size", remaining);
                     }
+                }
+            });
+
+            // Spawn allowlist refresh task (every 60s)
+            let handle_for_allowlist = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                let client = reqwest::Client::new();
+                loop {
+                    let (api_url, api_key) = {
+                        let state = handle_for_allowlist.state::<AppState>();
+                        let cfg = state.config.lock().unwrap();
+                        (cfg.api_url.clone(), cfg.api_key.clone())
+                    };
+
+                    if let Some(ref key) = api_key {
+                        match api::fetch_allowed_cards(&client, &api_url, Some(key)).await {
+                            Ok(cards) => {
+                                let count = cards.len();
+                                {
+                                    let state = handle_for_allowlist.state::<AppState>();
+                                    let mut cached = state.allowed_cards.lock().unwrap();
+                                    *cached = cards;
+                                }
+                                let _ = handle_for_allowlist.emit("nfc:allowlist-updated", count);
+                                info!("Allowlist updated: {count} cards");
+                            }
+                            Err(e) => {
+                                info!("Allowlist fetch failed (keeping old list): {e:?}");
+                            }
+                        }
+                    }
+
+                    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
                 }
             });
 

@@ -12,6 +12,7 @@
   let queueSize = $state(0);
   let saving = $state(false);
   let saved = $state(false);
+  let allowlistCount = $state<number | null>(null);
   let debugLog = $state<{ time: string; uid: string; status: string }[]>([]);
 
   onMount(async () => {
@@ -38,6 +39,10 @@
 
     listen<number>("nfc:queue-size", (event) => {
       queueSize = event.payload;
+    });
+
+    listen<number>("nfc:allowlist-updated", (event) => {
+      allowlistCount = event.payload;
     });
 
     listen<string>("nfc:card-scanned", (event) => {
@@ -89,6 +94,11 @@
       ></span>
       {readerConnected ? "Leser verbunden" : "Leser getrennt"}
     </div>
+    {#if allowlistCount !== null}
+      <div class="status-item allowlist-badge">
+        {allowlistCount} {allowlistCount === 1 ? "Karte" : "Karten"} erlaubt
+      </div>
+    {/if}
     {#if queueSize > 0}
       <div class="status-item queue-badge">
         {queueSize} in Warteschlange
@@ -217,6 +227,15 @@
   .queue-badge {
     background: #f59e0b30;
     color: #f59e0b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .allowlist-badge {
+    background: #3b82f630;
+    color: #3b82f6;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.75rem;
