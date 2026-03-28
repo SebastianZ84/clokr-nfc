@@ -95,6 +95,7 @@ fn poll_loop(
         }
 
         // Card is present — connect and read UID
+        let mut scan_processed = false;
         match ctx.connect(reader, ShareMode::Shared, Protocols::ANY) {
             Ok(card) => {
                 let mut response = [0u8; 256];
@@ -117,10 +118,11 @@ fn poll_loop(
                                     let _ = app.emit("nfc:card-error", "Karte zu schnell entfernt – bitte nochmal auflegen");
                                 } else if debouncer.should_process(&uid) {
                                     info!("Card scanned: {uid}");
-                                    // Try ACR122U LED: red for 5s then green (silent fail on other readers)
+                                    // Try ACR122U LED: red for 3s then green (silent fail on other readers)
                                     let mut led_resp = [0u8; 8];
                                     let _ = card.transmit(&LED_COOLDOWN_APDU, &mut led_resp);
                                     let _ = app.emit("nfc:card-scanned", uid.clone());
+                                    scan_processed = true;
                                 } else {
                                     let remaining = debouncer.remaining_secs(&uid);
                                     info!("Card debounced: {uid} ({remaining}s remaining)");
@@ -138,5 +140,11 @@ fn poll_loop(
         // Wait for card removal before next poll
         let mut remove_states = vec![ReaderState::new(reader, State::PRESENT)];
         let _ = ctx.get_status_change(Duration::from_secs(10), &mut remove_states);
+
+        // Cooldown after successful scan — reader ignores cards for 3s
+        if scan_processed {
+            info!("Cooldown: pausing reader for 3s");
+            thread::sleep(Duration::from_secs(3));
+        }
     }
 }
