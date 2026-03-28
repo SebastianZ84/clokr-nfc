@@ -14,6 +14,12 @@ use tauri::{AppHandle, Emitter};
 /// GET DATA APDU command to read card UID
 const GET_UID_APDU: [u8; 5] = [0xFF, 0xCA, 0x00, 0x00, 0x00];
 
+/// ACR122U LED control pseudo-APDU: blink red for ~3s, then return to green.
+///
+/// P2=0x5E: Red blink ON (initial), Green OFF; final state = Green ON, Red OFF
+/// T1=30 (3000ms red), T2=1 (100ms transition), 1 repetition, no buzzer
+const LED_COOLDOWN_APDU: [u8; 9] = [0xFF, 0x00, 0x40, 0x5E, 0x04, 0x1E, 0x01, 0x01, 0x00];
+
 /// Spawn the NFC polling thread. Returns a handle to check reader status.
 pub fn spawn_nfc_thread(app: AppHandle, reader_connected: Arc<AtomicBool>) {
     thread::spawn(move || {
@@ -111,7 +117,14 @@ fn poll_loop(
                                     let _ = app.emit("nfc:card-error", "Karte zu schnell entfernt – bitte nochmal auflegen");
                                 } else if debouncer.should_process(&uid) {
                                     info!("Card scanned: {uid}");
+                                    // Try ACR122U LED: red for 5s then green (silent fail on other readers)
+                                    let mut led_resp = [0u8; 8];
+                                    let _ = card.transmit(&LED_COOLDOWN_APDU, &mut led_resp);
                                     let _ = app.emit("nfc:card-scanned", uid.clone());
+                                } else {
+                                    let remaining = debouncer.remaining_secs(&uid);
+                                    info!("Card debounced: {uid} ({remaining}s remaining)");
+                                    let _ = app.emit("nfc:card-debounced", remaining);
                                 }
                             }
                         }

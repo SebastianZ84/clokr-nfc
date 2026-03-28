@@ -54,6 +54,11 @@
       const now = new Date().toLocaleTimeString("de-DE");
       debugLog = [{ time: now, uid: event.payload, status: "error" }, ...debugLog.slice(0, 19)];
     });
+
+    listen<number>("nfc:card-debounced", (event) => {
+      const now = new Date().toLocaleTimeString("de-DE");
+      debugLog = [{ time: now, uid: `Cooldown (${event.payload}s)`, status: "debounced" }, ...debugLog.slice(0, 19)];
+    });
   });
 
   async function save() {
@@ -163,7 +168,7 @@
     {:else}
       <div class="debug-list">
         {#each debugLog as entry}
-          <div class="debug-entry" class:error={entry.status === "error"}>
+          <div class="debug-entry" class:error={entry.status === "error"} class:debounced={entry.status === "debounced"}>
             <span class="debug-time">{entry.time}</span>
             <code class="debug-uid">{entry.uid}</code>
           </div>
@@ -406,6 +411,10 @@
 
   .debug-entry.error .debug-uid {
     color: #ef4444;
+  }
+
+  .debug-entry.debounced .debug-uid {
+    color: #f59e0b;
   }
 
   .debug-uid {

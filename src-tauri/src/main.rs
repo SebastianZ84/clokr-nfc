@@ -163,6 +163,17 @@ fn main() {
                 send_notification(&handle_for_errors, "⚠️ Lesefehler", &msg);
             });
 
+            // Listen for debounced scans (cooldown active)
+            let handle_for_debounce = app_handle.clone();
+            app.listen("nfc:card-debounced", move |event: tauri::Event| {
+                let secs = event.payload().trim_matches('"');
+                send_notification(
+                    &handle_for_debounce,
+                    "Bitte warten",
+                    &format!("Cooldown aktiv ({secs}s)"),
+                );
+            });
+
             // Spawn queue retry task
             let handle_for_queue = app_handle.clone();
             tauri::async_runtime::spawn(async move {
