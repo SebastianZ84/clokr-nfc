@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Listener, Manager};
-use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 
 pub struct AppState {
     pub config: Mutex<config::AppConfig>,
@@ -40,6 +40,14 @@ fn main() {
             let reader_connected = Arc::new(AtomicBool::new(false));
             let allowed_cards: Arc<Mutex<HashSet<String>>> =
                 Arc::new(Mutex::new(HashSet::new()));
+
+            // Sync OS-level autostart with config (covers manual registry edits / migrations)
+            let autostart_manager = app.autolaunch();
+            if cfg.auto_start {
+                let _ = autostart_manager.enable();
+            } else {
+                let _ = autostart_manager.disable();
+            }
 
             app.manage(AppState {
                 config: Mutex::new(cfg),
